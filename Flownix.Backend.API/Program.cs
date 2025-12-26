@@ -62,41 +62,24 @@ namespace Flownix.Backend.API
                 });
             });
 
-            // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ 1: Добавляем Authentication схемы как в чужом коде
             builder.Services
-                .AddAuthentication(options =>
-                {
-                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                })
+                .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
-                    var jwtKey = builder.Configuration["Jwt:Key"];
-                    if (string.IsNullOrWhiteSpace(jwtKey))
-                        throw new InvalidOperationException("Jwt:Key is missing in configuration.");
-
-                    var issuer = builder.Configuration["Jwt:Issuer"];
-                    var audience = builder.Configuration["Jwt:Audience"];
-
-                    if (string.IsNullOrWhiteSpace(issuer))
-                        throw new InvalidOperationException("Jwt:Issuer is missing in configuration.");
-                    if (string.IsNullOrWhiteSpace(audience))
-                        throw new InvalidOperationException("Jwt:Audience is missing in configuration.");
+                    var jwtKey = builder.Configuration["Jwt:Key"]!;
+                    var issuer = builder.Configuration["Jwt:Issuer"]!;
+                    var audience = builder.Configuration["Jwt:Audience"]!;
 
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuer = true,
                         ValidIssuer = issuer,
-
                         ValidateAudience = true,
                         ValidAudience = audience,
-
                         ValidateIssuerSigningKey = true,
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-
                         ValidateLifetime = true,
                         ClockSkew = TimeSpan.FromSeconds(30),
-
                         RoleClaimType = ClaimTypes.Role,
                         NameClaimType = ClaimTypes.NameIdentifier
                     };
@@ -106,41 +89,24 @@ namespace Flownix.Backend.API
 
             var app = builder.Build();
 
-            // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ 2: Всегда используем Swagger UI с настройкой маршрута
             app.UseSwagger();
-            app.UseSwaggerUI(c =>
-            {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Flownix API v1");
-                c.RoutePrefix = "swagger"; // Явно указываем маршрут
-            });
+            app.UseSwaggerUI();
 
-            // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ 3: Миграции БД ПЕРЕД настройкой пайплайна
-            using (var scope = app.Services.CreateScope())
+            if (app.Environment.IsDevelopment())
             {
-                try
-                {
-                    var db = scope.ServiceProvider.GetRequiredService<FlownixDbContext>();
-                    db.Database.Migrate();
-                    Console.WriteLine("✅ Database migrations applied successfully.");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"⚠️ Database migration error: {ex.Message}");
-                    // Не падаем, продолжаем
-                }
+                app.UseHttpsRedirection();
             }
 
-            // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ 4: Всегда используем HTTPS редирект (не только в Development)
-            app.UseHttpsRedirection();
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<FlownixDbContext>();
+                db.Database.Migrate();
+            }
 
             app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();
-
-            // ДОПОЛНИТЕЛЬНО: Добавляем корневой маршрут для редиректа на Swagger
-            app.MapGet("/", () => Results.Redirect("/swagger"));
-
             app.Run();
         }
     }
