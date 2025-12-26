@@ -21,7 +21,6 @@ namespace Flownix.Backend.API.Controllers
             return Ok(result);
         }
 
-        // GET: api/alerts/{id}
         [HttpGet("{id}")]
         public async Task<ActionResult<AlertDto>> GetAlertById(Guid id)
         {
