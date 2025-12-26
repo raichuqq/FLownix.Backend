@@ -89,24 +89,91 @@ namespace Flownix.Backend.API
 
             var app = builder.Build();
 
+            // Всегда используем HTTPS на Render
+            app.UseHttpsRedirection();
+
+            // Настраиваем Swagger
             app.UseSwagger();
-            app.UseSwaggerUI();
-
-            if (app.Environment.IsDevelopment())
+            app.UseSwaggerUI(c =>
             {
-                app.UseHttpsRedirection();
-            }
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Flownix API v1");
+                c.RoutePrefix = "swagger"; // Явно указываем маршрут
+            });
 
+            // ========== ИСПРАВЛЕННЫЙ БЛОК МИГРАЦИЙ ==========
             using (var scope = app.Services.CreateScope())
             {
-                var db = scope.ServiceProvider.GetRequiredService<FlownixDbContext>();
-                db.Database.Migrate();
+                var services = scope.ServiceProvider;
+
+                try
+                {
+                    Console.WriteLine("🔄 Attempting to connect to database...");
+
+                    var db = services.GetRequiredService<FlownixDbContext>();
+
+                    // Ждем, пока база данных станет доступной (до 30 попыток)
+                    bool canConnect = false;
+                    for (int i = 0; i < 30; i++)
+                    {
+                        try
+                        {
+                            canConnect = db.Database.CanConnect();
+                            if (canConnect)
+                            {
+                                Console.WriteLine("✅ Database connection successful!");
+                                break;
+                            }
+                        }
+                        catch
+                        {
+                            // Игнорируем ошибки подключения на первых попытках
+                        }
+
+                        Console.WriteLine($"⏳ Waiting for database... ({i + 1}/30)");
+                        System.Threading.Thread.Sleep(1000);
+                    }
+
+                    if (canConnect)
+                    {
+                        Console.WriteLine("🔄 Applying database migrations...");
+                        db.Database.Migrate();
+                        Console.WriteLine("✅ Database migrations applied successfully!");
+                    }
+                    else
+                    {
+                        Console.WriteLine("⚠️ Could not connect to database. Skipping migrations.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"⚠️ ERROR during database setup: {ex.Message}");
+                    Console.WriteLine("⚠️ Continuing without database migrations...");
+                    // НЕ выбрасываем исключение - продолжаем работу приложения
+                }
             }
+            // ==============================================
 
             app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();
+
+            // Редирект с корня на Swagger
+            app.MapGet("/", () => Results.Redirect("/swagger"));
+
+            // Health check endpoint
+            app.MapGet("/health", () =>
+                Results.Ok(new
+                {
+                    status = "healthy",
+                    timestamp = DateTime.UtcNow,
+                    service = "Flownix.Backend.API"
+                }));
+
+            Console.WriteLine($"🚀 Application starting...");
+            Console.WriteLine($"📚 Swagger available at: /swagger");
+            Console.WriteLine($"🌐 Health check at: /health");
+
             app.Run();
         }
     }
