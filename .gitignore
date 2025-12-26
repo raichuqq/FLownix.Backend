@@ -1,0 +1,31 @@
+## Visual Studio Build Artifacts
+[Bb]in/
+[Oo]bj/
+[Tt]est[Rr]esults/
+
+## Visual Studio Cache & Project Settings
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+
+## Build Tools & Packages
+.gradle/
+.telerik/
+node_modules/
+jspm_packages/
+packages/
+!**/packages/build/
+
+## Secrets & Local Configuration
+*.usersecrets
+.env
+.env.*
+appsettings.Development.json
+secrets.json
+
+## Logs & Temp Files
+*.log
+*.tmp
+*.temp

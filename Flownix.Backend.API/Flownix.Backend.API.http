@@ -1,0 +1,6 @@
+@Flownix.Backend.API_HostAddress = http://localhost:5038
+
+GET {{Flownix.Backend.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
