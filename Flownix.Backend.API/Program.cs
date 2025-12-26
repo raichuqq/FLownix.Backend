@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Security.Claims;
 using System.Text;
-using MediatR;
-using Flownix.Backend.Application.Interfaces;
 using Flownix.Backend.Application;
+using Flownix.Backend.Application.Interfaces;
 using Flownix.Backend.Infrastructure.Integration.Authentication;
 using Flownix.Backend.Infrastructure.Persistence;
 
@@ -21,10 +21,21 @@ namespace Flownix.Backend.API
             builder.Services.AddEndpointsApiExplorer();
 
             builder.Services.AddApplication();
+            builder.Services.AddPersistence(builder.Configuration);
+
+            builder.Services.AddHttpContextAccessor();
+
+            builder.Services.AddScoped<IJwtService, JwtService>();
+            builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
+            builder.Services.AddScoped<IUserContextService, UserContextService>();
 
             builder.Services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "MedFront API", Version = "v1" });
+                c.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "Flownix API",
+                    Version = "v1"
+                });
 
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
@@ -32,8 +43,7 @@ namespace Flownix.Backend.API
                     Type = SecuritySchemeType.Http,
                     Scheme = "bearer",
                     BearerFormat = "JWT",
-                    In = ParameterLocation.Header,
-                    Description = "Введите JWT токен в формате: Bearer {token}"
+                    In = ParameterLocation.Header
                 });
 
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -52,49 +62,24 @@ namespace Flownix.Backend.API
                 });
             });
 
-            builder.Services.AddPersistence(builder.Configuration);
-
-            builder.Services.AddHttpContextAccessor();
-
-            builder.Services.AddScoped<IJwtService, JwtService>();
-            builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
-            builder.Services.AddScoped<IUserContextService, UserContextService>();
-
-            // JWT Authentication
             builder.Services
-                .AddAuthentication(options =>
-                {
-                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                })
+                .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
-                    var jwtKey = builder.Configuration["Jwt:Key"];
-                    if (string.IsNullOrWhiteSpace(jwtKey))
-                        throw new InvalidOperationException("Jwt:Key is missing in configuration.");
-
-                    var issuer = builder.Configuration["Jwt:Issuer"];
-                    var audience = builder.Configuration["Jwt:Audience"];
-
-                    if (string.IsNullOrWhiteSpace(issuer))
-                        throw new InvalidOperationException("Jwt:Issuer is missing in configuration.");
-                    if (string.IsNullOrWhiteSpace(audience))
-                        throw new InvalidOperationException("Jwt:Audience is missing in configuration.");
+                    var jwtKey = builder.Configuration["Jwt:Key"]!;
+                    var issuer = builder.Configuration["Jwt:Issuer"]!;
+                    var audience = builder.Configuration["Jwt:Audience"]!;
 
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuer = true,
                         ValidIssuer = issuer,
-
                         ValidateAudience = true,
                         ValidAudience = audience,
-
                         ValidateIssuerSigningKey = true,
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-
                         ValidateLifetime = true,
                         ClockSkew = TimeSpan.FromSeconds(30),
-
                         RoleClaimType = ClaimTypes.Role,
                         NameClaimType = ClaimTypes.NameIdentifier
                     };
@@ -104,19 +89,24 @@ namespace Flownix.Backend.API
 
             var app = builder.Build();
 
+            app.UseSwagger();
+            app.UseSwaggerUI();
+
             if (app.Environment.IsDevelopment())
             {
-                app.UseSwagger();
-                app.UseSwaggerUI();
+                app.UseHttpsRedirection();
             }
 
-            app.UseHttpsRedirection();
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<FlownixDbContext>();
+                db.Database.Migrate();
+            }
 
             app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();
-
             app.Run();
         }
     }
