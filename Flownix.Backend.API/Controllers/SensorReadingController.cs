@@ -11,7 +11,6 @@ namespace Flownix.Backend.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // Общая авторизация для всего контроллера
     public class SensorReadingController : BaseController
     {
         private readonly IMediator _mediator;
@@ -60,7 +59,8 @@ namespace Flownix.Backend.API.Controllers
         {
             var command = new CreateSensorReadingCommand { Reading = dto };
             var result = await _mediator.Send(command);
-            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            return Ok(result.Id);
+
         }
     }
 }
