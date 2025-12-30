@@ -11,7 +11,7 @@ namespace Flownix.Backend.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize] // Общая авторизация для всего контроллера
     public class SensorReadingController : BaseController
     {
         private readonly IMediator _mediator;
@@ -55,6 +55,7 @@ namespace Flownix.Backend.API.Controllers
 
         // POST: api/sensorreading
         [HttpPost]
+        [AllowAnonymous] // ← ВАЖНО: Разрешаем анонимный доступ к этому методу
         public async Task<ActionResult<SensorReadingDto>> Create(CreateSensorReadingDto dto)
         {
             var command = new CreateSensorReadingCommand { Reading = dto };
