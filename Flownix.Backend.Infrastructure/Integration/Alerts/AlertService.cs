@@ -11,9 +11,9 @@ namespace Flownix.Backend.Infrastructure.Integration.Alerts
         private readonly IFlownixDbContext _context;
         private readonly ILogger<AlertService> _logger;
 
-        public AlertService(
-            IFlownixDbContext context,
-            ILogger<AlertService> logger)
+    public AlertService(
+        IFlownixDbContext context,
+        ILogger<AlertService> logger)
         {
             _context = context;
             _logger = logger;
@@ -66,7 +66,7 @@ namespace Flownix.Backend.Infrastructure.Integration.Alerts
                     alerts.Add(CreateAlert(
                         waterObject,
                         sensor,
-                        $"{sensor.Type}: значение {reading.Value} {sensor.Unit} ниже минимального " +
+                        $"{sensor.Type}: значення {reading.Value} {sensor.Unit} нижче мінімального " +
                         $"{sensor.MinValue} {sensor.Unit}",
                         reading.Value,
                         sensor.MinValue,
@@ -79,7 +79,7 @@ namespace Flownix.Backend.Infrastructure.Integration.Alerts
                     alerts.Add(CreateAlert(
                         waterObject,
                         sensor,
-                        $"{sensor.Type}: значение {reading.Value} {sensor.Unit} выше максимального " +
+                        $"{sensor.Type}: значення {reading.Value} {sensor.Unit} вище максимального " +
                         $"{sensor.MaxValue} {sensor.Unit}",
                         reading.Value,
                         sensor.MinValue,
@@ -132,8 +132,8 @@ namespace Flownix.Backend.Infrastructure.Integration.Alerts
                 var alert = new Alert
                 {
                     WaterObjectId = pump.WaterObjectId,
-                    WaterObject = waterObject, 
-                    Message = $"Насос '{pump.Name}' в состоянии ERROR",
+                    WaterObject = waterObject,
+                    Message = $"Насос '{pump.Name}' у стані ERROR",
                     Type = AlertType.Critical,
                     CreatedAt = DateTime.UtcNow,
                     IsRead = false
@@ -167,9 +167,9 @@ namespace Flownix.Backend.Infrastructure.Integration.Alerts
             return new Alert
             {
                 WaterObjectId = waterObject.Id,
-                WaterObject = waterObject, 
+                WaterObject = waterObject,
                 SensorId = sensor.Id,
-                Sensor = sensor, 
+                Sensor = sensor,
                 Message = message,
                 Type = GetAlertTypeForValue(currentValue, minValue, maxValue),
                 CreatedAt = DateTime.UtcNow,
@@ -210,7 +210,7 @@ namespace Flownix.Backend.Infrastructure.Integration.Alerts
                     WaterObject = waterObject,
                     SensorId = sensor.Id,
                     Sensor = sensor,
-                    Message = $"Уровень воды {percentage:F1}% близок к максимальному ({waterObject.MaxVolume})",
+                    Message = $"Рівень води {percentage:F1}% близький до максимального ({waterObject.MaxVolume})",
                     Type = AlertType.Warning,
                     CreatedAt = DateTime.UtcNow,
                     IsRead = false
@@ -224,7 +224,7 @@ namespace Flownix.Backend.Infrastructure.Integration.Alerts
                     WaterObject = waterObject,
                     SensorId = sensor.Id,
                     Sensor = sensor,
-                    Message = $"Уровень воды {percentage:F1}% близок к минимальному",
+                    Message = $"Рівень води {percentage:F1}% близький до мінімального",
                     Type = AlertType.Critical,
                     CreatedAt = DateTime.UtcNow,
                     IsRead = false
@@ -237,7 +237,7 @@ namespace Flownix.Backend.Infrastructure.Integration.Alerts
                 {
                     WaterObjectId = waterObject.Id,
                     WaterObject = waterObject,
-                    Message = $"Текущий объем {waterObject.CurrentVolume} превышает максимальный {waterObject.MaxVolume}",
+                    Message = $"Поточний обʼєм {waterObject.CurrentVolume} перевищує максимальний {waterObject.MaxVolume}",
                     Type = AlertType.Critical,
                     CreatedAt = DateTime.UtcNow,
                     IsRead = false
