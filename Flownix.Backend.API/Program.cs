@@ -19,8 +19,22 @@ namespace Flownix.Backend.API
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddControllers();
+        builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAngularFrontend", policy =>
+                {
+                    policy
+                        .WithOrigins(
+                            "http://localhost:4200",
+                            "https://localhost:4200"
+                        )
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                });
+            });
 
             builder.Services.AddApplication();
             builder.Services.AddPersistence(builder.Configuration);
@@ -49,19 +63,19 @@ namespace Flownix.Backend.API
                 });
 
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
                 {
+                    new OpenApiSecurityScheme
                     {
-                        new OpenApiSecurityScheme
+                        Reference = new OpenApiReference
                         {
-                            Reference = new OpenApiReference
-                            {
-                                Type = ReferenceType.SecurityScheme,
-                                Id = "Bearer"
-                            }
-                        },
-                        Array.Empty<string>()
-                    }
-                });
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                    },
+                    Array.Empty<string>()
+                }
+            });
             });
 
             builder.Services
@@ -122,6 +136,8 @@ namespace Flownix.Backend.API
             // "Failed to determine the https port for redirect".
             // Пока оставляем, чтобы не менять лишнюю логику.
             app.UseHttpsRedirection();
+
+            app.UseCors("AllowAngularFrontend");
 
             app.UseSwagger();
             app.UseSwaggerUI(c =>
@@ -206,4 +222,5 @@ namespace Flownix.Backend.API
             app.Run();
         }
     }
+
 }
